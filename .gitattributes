@@ -1,0 +1,20 @@
+# 统一换行符：仓库内与工作区一律 LF。
+#
+# 本机 core.autocrlf=true，若不显式声明，检出时会把 LF 换成 CRLF，
+# 每次 add 都刷 "LF will be replaced by CRLF" 警告，且不同平台协作者
+# 提交的内容会因行尾差异产生无意义的 diff。.gitattributes 的优先级
+# 高于 core.autocrlf，这里定死后就与各人本地配置无关了。
+* text=auto eol=lf
+
+# 二进制，不要做行尾转换与 diff
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.zip  binary
+
+# Windows 脚本必须是 CRLF，否则 cmd.exe 解析会出问题
+*.bat  text eol=crlf
+*.cmd  text eol=crlf

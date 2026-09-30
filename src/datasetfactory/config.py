@@ -102,7 +102,18 @@ def validate(cfg: dict[str, Any]) -> None:
     if abs(wsum - 1.0) > 1e-6:
         raise ValueError(f"quality.weights 之和必须为 1.0，当前为 {wsum}")
 
+    # 延迟导入：stages/__init__ 会拉起 contamination，而它要
+    # ``from ..config import resolve_path``——模块级导入会成环。
+    # 此处的职责是让非法 op 在**配置加载期**就报错，而不是等跑到
+    # Filter 阶段（前面六个 stage 全白跑）才在 evaluate() 里抛。
+    from .stages.filter import OPS
+
     for rule in cfg["filter"]["rules"]:
         for field in ("metric", "op", "value"):
             if field not in rule:
                 raise ValueError(f"filter rule 缺少字段 '{field}': {rule}")
+        if rule["op"] not in OPS:
+            raise ValueError(
+                f"filter rule op 不支持: {rule['op']!r}；"
+                f"可用：{', '.join(sorted(OPS))}"
+            )

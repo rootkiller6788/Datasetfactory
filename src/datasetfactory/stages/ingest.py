@@ -37,7 +37,20 @@ def load_jsonl(path: Path, text_field: str) -> list[tuple[str, dict[str, Any]]]:
             line = line.strip()
             if not line:
                 continue
-            obj = json.loads(line)
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError as exc:
+                # 带上 文件:行号 —— 原始 JSONDecodeError 只说 "line 1 column 5"，
+                # 那是这一行内部的坐标，数据源一多就定位不到是哪个文件出的错。
+                raise ValueError(
+                    f"{path}:{lineno} 不是合法 JSON：{exc.msg}"
+                ) from exc
+            if not isinstance(obj, dict):
+                # 裸字符串/数组会让下面的 obj.get() 抛 AttributeError，
+                # 而 cli 只捕获 ValueError，用户看到的会是一屏 traceback。
+                raise ValueError(
+                    f"{path}:{lineno} 期望 JSON 对象，实际是 {type(obj).__name__}"
+                )
             text = str(obj.get(text_field) or obj.get("content") or "").strip()
             meta = {k: v for k, v in obj.items() if k != text_field}
             meta["_lineno"] = lineno

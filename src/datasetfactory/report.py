@@ -251,8 +251,8 @@ def build_report(result: PipelineResult) -> str:
     # Lineage DAG
     lines.append("## 六、Lineage DAG")
     lines.append("")
-    lines.append(f"节点 {result.dag.summary()['nodes']} 个，"
-                 f"边 {result.dag.summary()['edges']} 条。")
+    dag_summary = result.dag.summary()  # 会遍历全部节点统计 by_kind，只算一次
+    lines.append(f"节点 {dag_summary['nodes']} 个，边 {dag_summary['edges']} 条。")
     lines.append("")
     lines.append("```")
     lines.append(result.dag.to_ascii())

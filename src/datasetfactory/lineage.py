@@ -25,6 +25,21 @@ from typing import Any
 from .schema import utcnow
 
 
+def _dot_escape(text: str) -> str:
+    """转义 Graphviz DOT 双引号字符串里的特殊字符。
+
+    反斜杠必须最先替换，否则会把后面替换出的引号反斜杠再转义一遍。
+    换行转成 DOT 的 ``\\n`` 转义（标签内换行），避免把 label 拆成多行
+    导致语法错误。
+    """
+    return (
+        text.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+        .replace("\r", "")
+    )
+
+
 @dataclass
 class LineageNode:
     """DAG 节点，串联 Source → Transform → Sample。
@@ -157,16 +172,23 @@ class DatasetDAG:
         )
 
     def to_dot(self) -> str:
-        """Graphviz DOT，便于渲染成图。"""
+        """Graphviz DOT，便于渲染成图。
+
+        node_id / label 里可能带引号或反斜杠（source_id、filter_id 都来自
+        配置，是用户可控输入），直接插进双引号会生成非法 DOT、graphviz
+        报语法错误。所有插值都过一遍 :func:`_dot_escape`。
+        """
         lines = [
             "digraph lineage {",
             "  rankdir=LR;",
             '  node [shape=box, fontname="Helvetica"];',
         ]
         for node in self.nodes.values():
-            lines.append(f'  "{node.node_id}" [label="{node.label}\\n({node.kind})"];')
+            # 先转义 label，再拼 DOT 的 \n —— 这个 \n 是换行转义，不能一起被转义掉
+            label = f"{_dot_escape(node.label)}\\n({_dot_escape(node.kind)})"
+            lines.append(f'  "{_dot_escape(node.node_id)}" [label="{label}"];')
         for a, b in self.edges:
-            lines.append(f'  "{a}" -> "{b}";')
+            lines.append(f'  "{_dot_escape(a)}" -> "{_dot_escape(b)}";')
         lines.append("}")
         return "\n".join(lines)
 

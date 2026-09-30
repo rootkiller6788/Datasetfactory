@@ -9,8 +9,8 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
-from typing import Any
 
 from .config import load_config
 from .pipeline import run_pipeline
@@ -41,8 +41,6 @@ def _explain(args: argparse.Namespace):
     expl = explain_sample(result, args.sample_id)
 
     if args.json:
-        import json
-
         print(json.dumps(expl, ensure_ascii=False, indent=2))
     else:
         print(render_explanation(expl))

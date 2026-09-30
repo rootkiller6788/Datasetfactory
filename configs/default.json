@@ -1,0 +1,90 @@
+{
+  "pipeline_id": "datasetfactory-demo",
+  "version_tag": "v1",
+  "parent_version": null,
+
+  "sources": [
+    {
+      "source_id": "wiki",
+      "uri": "data/raw/wiki.jsonl",
+      "kind": "jsonl",
+      "license": "CC-BY-SA-4.0",
+      "text_field": "text"
+    },
+    {
+      "source_id": "books",
+      "uri": "data/raw/books.csv",
+      "kind": "csv",
+      "license": "public-domain",
+      "text_field": "text"
+    },
+    {
+      "source_id": "notes",
+      "uri": "data/raw/notes",
+      "kind": "dir",
+      "license": "internal",
+      "text_field": "text"
+    },
+    {
+      "source_id": "papers",
+      "uri": "data/raw/papers.jsonl",
+      "kind": "jsonl",
+      "license": "internal",
+      "text_field": "text"
+    }
+  ],
+
+  "normalize": {
+    "unicode_form": "NFKC",
+    "strip_html": true,
+    "collapse_whitespace": true,
+    "drop_empty": true
+  },
+
+  "fingerprint": {
+    "algo": "simhash",
+    "bits": 64,
+    "shingle_size": 5
+  },
+
+  "dedup": {
+    "exact": true,
+    "near": {
+      "enabled": true,
+      "hamming_threshold": 8
+    }
+  },
+
+  "quality": {
+    "min_chars": 40,
+    "length_target": 400,
+    "weights": {
+      "length": 0.30,
+      "content_ratio": 0.30,
+      "line_uniqueness": 0.25,
+      "symbol_penalty": 0.15
+    }
+  },
+
+  "contamination": {
+    "reference": "data/eval/benchmark.jsonl",
+    "text_field": "text",
+    "ngram": 8,
+    "threshold": 0.30
+  },
+
+  "filter": {
+    "filter_id": "quality-and-contamination",
+    "on_fail": "drop",
+    "rules": [
+      { "metric": "quality.score", "op": ">=", "value": 0.55 },
+      { "metric": "contamination.ratio", "op": "<", "value": 0.30 }
+    ]
+  },
+
+  "split": {
+    "name": "main",
+    "seed": 2,
+    "ratios": { "train": 0.7, "valid": 0.15, "test": 0.15 }
+  }
+}

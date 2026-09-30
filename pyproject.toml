@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "datasetfactory"
+version = "0.1.0"
+description = "DatasetFactory 数据集工厂 — 去重 / 质量评分 / 污染检测 / 数据谱系 DAG"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+# 核心链路零第三方依赖：落地约束「4060 8G 单机可跑」
+dependencies = []
+
+[project.optional-dependencies]
+# 可选扩展：HF 数据集来源
+hf = ["datasets>=2.18"]
+dev = ["pytest>=7.4"]
+
+[project.scripts]
+datasetfactory = "datasetfactory.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

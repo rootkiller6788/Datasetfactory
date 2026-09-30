@@ -1,0 +1,15 @@
+# DatasetFactory 依赖说明
+#
+# 核心链路（Ingest → Normalize → Fingerprint → Dedup → Quality →
+#          Contamination → Filter → Split → Version → Lineage DAG）
+# 全部基于 Python 标准库，无需安装任何第三方包：
+#
+#     python main.py run --config configs/default.json
+#
+# 以下为可选扩展，仅在需要对应能力时安装。
+
+# 可选：HF 数据集来源（Ingest 的 hf loader）
+# datasets>=2.18
+
+# 可选：单元测试
+# pytest>=7.4

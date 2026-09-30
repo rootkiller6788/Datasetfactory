@@ -17,6 +17,7 @@ README「五、Lineage DAG」：
 from __future__ import annotations
 
 import json
+from collections import deque
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -100,14 +101,20 @@ class DatasetDAG:
         return sorted(seen)
 
     def topological(self) -> list[str]:
-        """拓扑序；存在环则抛错。"""
+        """拓扑序；存在环则抛错。
+
+        用 deque 而非 list：``list.pop(0)`` 每次要搬动整个列表（O(n)），
+        节点多时整体退化成 O(n²)。deque.popleft() 是 O(1)，且同为 FIFO，
+        出队顺序与原先逐字节一致（初始按 id 排序、子节点按 id 入队），
+        因此拓扑序仍是确定的、可复现的。
+        """
         indeg = {n: 0 for n in self.nodes}
         for _, dst in self.edges:
             indeg[dst] += 1
-        queue = sorted(n for n, d in indeg.items() if d == 0)
+        queue = deque(sorted(n for n, d in indeg.items() if d == 0))
         order: list[str] = []
         while queue:
-            cur = queue.pop(0)
+            cur = queue.popleft()
             order.append(cur)
             for child in sorted(self.children(cur)):
                 indeg[child] -= 1

@@ -123,7 +123,31 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _force_utf8_stdio() -> None:
+    """把 stdout / stderr 切到 UTF-8。
+
+    报告用 ``✓`` / ``✗`` 标记过滤规则是否通过，这两个字符不在 GBK
+    （cp936）码表内 —— 中文 Windows 的默认控制台编码下会直接抛
+    ``UnicodeEncodeError`` 让 ``explain`` 崩溃。输出里的 ``→`` ``←``
+    ``├─`` 等符号 GBK 里都有，所以只有这两行会炸。
+
+    Python 3.6+ 在 Windows 控制台上按 UTF-8 字节流调用 ``WriteConsoleW``，
+    因此切成 UTF-8 后中文与符号都能正常渲染；重定向到文件时也统一按
+    UTF-8 落盘，与 ``out/`` 下其它产物保持一致。
+    """
+    for stream in (sys.stdout, sys.stderr):
+        # pytest 的捕获对象和 StringIO 没有 reconfigure，跳过即可
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (ValueError, OSError):
+            pass
+
+
 def main(argv: list[str] | None = None) -> int:
+    _force_utf8_stdio()
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

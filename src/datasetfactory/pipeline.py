@@ -104,7 +104,17 @@ def run_pipeline(cfg: dict[str, Any]) -> PipelineResult:
     samples, dropped = filter_stage.apply_filter(samples, cfg["filter"], dag)
     rejections.extend(dropped)
     counters["filtered"] = len(samples)
-    transforms.append(Transform("flt:main", "Filter", dict(cfg["filter"]), CODE_VERSION))
+    # transform_id 必须与 DAG 上的节点 id 一致，否则 lineage.json 里的
+    # transforms 和 nodes 对不上，审计时无法从样本链路反查到处理步骤。
+    # Filter 的节点 id 由 stages/filter.py 按 filter_id 生成（flt:<filter_id>）。
+    transforms.append(
+        Transform(
+            f"flt:{cfg['filter'].get('filter_id', 'default')}",
+            "Filter",
+            dict(cfg["filter"]),
+            CODE_VERSION,
+        )
+    )
 
     # 8) Split --------------------------------------------------------
     splits = split_stage.split_dataset(samples, cfg["split"], dag)
@@ -115,7 +125,17 @@ def run_pipeline(cfg: dict[str, Any]) -> PipelineResult:
     counters["final"] = dict(ver.counts)
     counters["total_final"] = sum(ver.counts.values())
     counters["rejected"] = len(rejections)
-    transforms.append(Transform("ver", "Version", {"tag": ver.tag}, CODE_VERSION))
+    # Version 在 DAG 上每个 split 落一个节点（ver:<split>:<tag>），
+    # 这里同样逐 split 记一个 Transform，保持 transform_id 与节点 id 一一对应。
+    for split_name in sorted(splits):
+        transforms.append(
+            Transform(
+                f"ver:{split_name}:{ver.tag}",
+                f"Version/{split_name}",
+                {"tag": ver.tag, "parent": ver.parent, "digest": ver.digest},
+                CODE_VERSION,
+            )
+        )
 
     dataset = Dataset(
         dataset_id=cfg.get("pipeline_id", "datasetfactory"),

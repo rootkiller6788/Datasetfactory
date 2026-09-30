@@ -45,8 +45,14 @@ def simhash(tokens: Iterable[str], bits: int = 64) -> int:
 
 
 def hamming(a: int, b: int) -> int:
-    """两个指纹的汉明距离。"""
-    return bin(a ^ b).count("1")
+    """两个指纹的汉明距离。
+
+    用 ``int.bit_count()``（Python 3.10+，pyproject 的 requires-python 已保证）
+    而不是 ``bin(x).count("1")``：前者是 C 层的 popcount，后者要为每个
+    指纹分配一个临时字符串。near 去重要对每对样本算一次，样本多时这个
+    差别会被放大。两者结果完全等价。
+    """
+    return (a ^ b).bit_count()
 
 
 def fingerprint(
